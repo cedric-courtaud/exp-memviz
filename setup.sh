@@ -16,5 +16,3 @@ echo "[3] Registering tool"
 patch < ${CURR_DIR}/register-exp-memviz-tool.patch
 
 echo "You can now build valgind."
-
-#git checkout ${VG_BRANCH}
