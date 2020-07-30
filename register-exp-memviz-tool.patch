@@ -1,0 +1,26 @@
+diff --git a/Makefile.am b/Makefile.am
+index 242b38a14..0607afda4 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -15,6 +15,7 @@ TOOLS = \
+ 		none
+ 
+ EXP_TOOLS = \
++		exp-memviz \
+ 		exp-sgcheck \
+ 		exp-bbv
+ 
+diff --git a/configure.ac b/configure.ac
+index f8c798bf3..b3c09493a 100755
+--- a/configure.ac
++++ b/configure.ac
+@@ -4740,6 +4740,9 @@ AC_CONFIG_FILES([
+    exp-bbv/tests/amd64-linux/Makefile
+    exp-bbv/tests/ppc32-linux/Makefile
+    exp-bbv/tests/arm-linux/Makefile
++   exp-memviz/Makefile
++   exp-memviz/tests/Makefile
++   exp-memviz/tests/x86/Makefile
+    shared/Makefile
+    solaris/Makefile
+ ])
