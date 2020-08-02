@@ -4,10 +4,10 @@ It is a stripped and modified version of the CacheGrind tool.
 # Setting things up 
 
 The `setup.sh` script will clone the valgrind repository, checkout to the latest supported version (Valgrind 3.15), and add the module to it.
-The script behaviour can be altered with the following nvironment variables:
-    - `VG_REPO_ADDR` specifies the address of the valgrind repository. You should not modifiy this. 
-    - `VG_TAG` specifies on which commit the script must checkout. Default value is the release tag of the latest supported version (`VALGRIND_3_15_0`)
-    - `VG_REPO_DEST` specifies the path where the valgrind repo will be cloned. Default value is `${PWD}/valgrind`.
+The script behaviour can be altered with the following environment variables:
+* `VG_REPO_ADDR` specifies the address of the valgrind repository. You should not modifiy this. 
+* `VG_TAG` specifies on which commit the script must checkout. Default value is the release tag of the latest supported version (`VALGRIND_3_15_0`)
+* `VG_REPO_DEST` specifies the path where the valgrind repo will be cloned. Default value is `${PWD}/valgrind`.
 
 Once you have launched the `setup.sh` script, you can build vagrind as usual.
 
