@@ -1485,8 +1485,7 @@ static void cg_post_clo_init(void)
 
    cachesim_initcaches(I1c, D1c, LLc);
 
-   HChar * out_filename = VG_(expand_file_name)("--memviz-out-file", clo_memviz_out_file);
-   profiler_init(&memviz_profiler, MV_PROFILER_DEFAULT_BUFFER_SIZE, out_filename);
+   profiler_init(&memviz_profiler, MV_PROFILER_DEFAULT_BUFFER_SIZE, clo_memviz_out_file);
 }
 
 VG_DETERMINE_INTERFACE_VERSION(cg_pre_clo_init)

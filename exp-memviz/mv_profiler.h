@@ -34,9 +34,11 @@ typedef struct {
     UInt buffer_size;
     UInt buffer_capacity;
     ULong inst_since_last_access;
+    ULong access_count;
     Addr current_instruction_addr;
     access_flags_t current_flags;
     VgFile * out_fp;
+    HChar * out_filename;
 } Profiler_t;
 
 void dump_access_buffer(Profiler_t * t);
@@ -54,7 +56,7 @@ static inline void record_local_instruction(Profiler_t * profiler) {
 }
 
 static inline void __record_access(Profiler_t * profiler, Addr inst_addr, Addr dest_addr, access_flags_t flags) {
-    // __update_last_access_instruction_count(profiler);
+    profiler->access_count++;
 
     if (profiler->buffer_size == profiler->buffer_capacity) {
         dump_access_buffer(profiler);
