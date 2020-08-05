@@ -3,6 +3,8 @@
 
 #include "pub_tool_basics.h"
 #include "pub_tool_libcprint.h"
+#include "pub_tool_libcbase.h"
+#include "pub_tool_mallocfree.h"
 #include "pub_tool_xarray.h"
 
 #define MV_PROFILER_DEFAULT_BUFFER_SIZE (16 << 10)
@@ -39,7 +41,18 @@ typedef struct {
     access_flags_t current_flags;
     VgFile * out_fp;
     HChar * out_filename;
+    XArray * checkpoints;
+    Word current_checkpoint;
+
 } Profiler_t;
+
+#define CHECKPOINT_STATS_DEFAULT_CAPACITY 128
+
+typedef struct {
+    ULong * bitfield;
+    UInt capacity;
+} checkpoint_stats;
+
 
 void dump_access_buffer(Profiler_t * t);
 
@@ -82,6 +95,13 @@ static inline void record_checkpoint(Profiler_t * profiler, const HChar * checkp
         dump_access_buffer(profiler);
     }
 
+    HChar * copy = VG_(malloc)("Checkpoint name copy", VG_(strlen)(checkpoint));
+    VG_(strcpy)(copy, checkpoint);
+
+    profiler->current_checkpoint = VG_(addToXA)(profiler->checkpoints, &copy);
+
+    // HChar * toto = *((HChar **) VG_(indexXA)(profiler->checkpoints, profiler->current_checkpoint));
+    // VG_(printf)("C %s %p %p %ld\n", toto, toto, checkpoint, profiler->current_checkpoint);
     VG_(fprintf)(profiler->out_fp, "C %s %llu\n", checkpoint, profiler->inst_since_last_access);
 }
 

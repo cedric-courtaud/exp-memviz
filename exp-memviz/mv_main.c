@@ -51,7 +51,12 @@
 #include "mv_arch.h"
 #include "mv_profiler.h"
 #include "mv_sim.h"
+#include "bitfield.h"
+
 // #include "cg_branchpred.c"
+
+#define min(a, b) ((a < b) ? a : b)
+#define max(a, b) ((a > b) ? a : b)
 
 /*------------------------------------------------------------*/
 /*--- Constants                                            ---*/
@@ -66,6 +71,7 @@
 
 static Bool  clo_cache_sim  = True;  /* do cache simulation? */
 static const HChar* clo_memviz_out_file = "memviz.out.%p";
+static const HChar* clo_memviz_checkpoint_file = "memviz.chekpoint.%p";
 
 /*------------------------------------------------------------*/
 /*--- Cachesim configuration                               ---*/
@@ -107,16 +113,20 @@ typedef struct {
    HChar* file;
    const HChar* fn;
    Int    line;
+   Addr   minAddr;
+   Addr   maxAddr;
 }
 CodeLoc;
 
 typedef struct {
    CodeLoc  loc; /* Source location that these counts pertain to */
+   Bitfield phases;
    CacheCC  Ir;  /* Insn read counts */
    CacheCC  Dr;  /* Data read counts */
    CacheCC  Dw;  /* Data write/modify counts */
    BranchCC Bc;  /* Conditional branch counts */
    BranchCC Bi;  /* Indirect branch counts */
+   
 } LineCC;
 
 // First compare file, then fn, then line.
@@ -252,6 +262,7 @@ static LineCC* get_lineCC(Addr origAddr)
 
    get_debug_info(origAddr, &dir, &file, &fn, &line);
 
+
    // Form an absolute pathname if a directory is available
    HChar absfile[VG_(strlen)(dir) + 1 + VG_(strlen)(file) + 1];
 
@@ -272,21 +283,16 @@ static LineCC* get_lineCC(Addr origAddr)
       lineCC->loc.file = get_perm_string(loc.file);
       lineCC->loc.fn   = get_perm_string(loc.fn);
       lineCC->loc.line = loc.line;
-      lineCC->Ir.a     = 0;
-      lineCC->Ir.m1    = 0;
-      lineCC->Ir.mL    = 0;
-      lineCC->Dr.a     = 0;
-      lineCC->Dr.m1    = 0;
-      lineCC->Dr.mL    = 0;
-      lineCC->Dw.a     = 0;
-      lineCC->Dw.m1    = 0;
-      lineCC->Dw.mL    = 0;
-      lineCC->Bc.b     = 0;
-      lineCC->Bc.mp    = 0;
-      lineCC->Bi.b     = 0;
-      lineCC->Bi.mp    = 0;
+      lineCC->loc.minAddr = origAddr;
+      lineCC->loc.maxAddr = origAddr;
+
+      initBitField(&lineCC->phases, 128);
+
       VG_(OSetGen_Insert)(CC_table, lineCC);
    }
+   
+   lineCC->loc.minAddr = min(origAddr, lineCC->loc.minAddr);
+   lineCC->loc.maxAddr = max(origAddr, lineCC->loc.maxAddr);
 
    return lineCC;
 }
@@ -1052,6 +1058,8 @@ IRSB* cg_instrument ( VgCallbackClosure* closure,
             // also use it.
             curr_inode = setup_InstrInfo(&cgs, cia, isize);
 
+            setBit(&curr_inode->parent->phases, memviz_profiler.current_checkpoint);
+
             addEvent_Ir( &cgs, curr_inode );
             break;
 
@@ -1294,8 +1302,76 @@ static cache_t clo_LL_cache = UNDEFINED_CACHE;
 /*--- cg_fini() and related function                       ---*/
 /*------------------------------------------------------------*/
 
+static void print_checkpoint_table(Profiler_t * profiler) {
+   Int     i;
+   VgFile  *fp;
+   HChar   *currFile = NULL;
+   const HChar *currFn = NULL;
+   LineCC* lineCC;
+
+   HChar* cachegrind_out_file =
+      VG_(expand_file_name)("--memviz-checkpoint-file", clo_memviz_checkpoint_file);
+
+   fp = VG_(fopen)(cachegrind_out_file, VKI_O_CREAT | VKI_O_WRONLY,
+                                        VKI_S_IRUSR|VKI_S_IWUSR);
+   if (fp == NULL) {
+      // If the file can't be opened for whatever reason (conflict
+      // between multiple cachegrinded processes?), give up now.
+      VG_(umsg)("error: can't open checkpoint summary output file '%s'\n",
+                cachegrind_out_file );
+      VG_(free)(cachegrind_out_file);
+      return;
+   } else {
+      VG_(free)(cachegrind_out_file);
+   }
+
+   Word checkpoint_nb = VG_(sizeXA)(profiler->checkpoints);
+
+   VG_(fprintf)(fp, "[checkpoint id]\n");
+
+   // Print checkpoint table
+   for (int i=0; i < checkpoint_nb; i++) {
+      HChar * c = *(HChar **)VG_(indexXA)(profiler->checkpoints, i);
+      VG_(fprintf)(fp, "%d -> %s\n", i, c);
+   }
+   
+   VG_(fprintf)(fp, "\n");
+   
+   VG_(fprintf)(fp, "[met checkpoint]\n");
+
+   // Traverse every lineCC
+   VG_(OSetGen_ResetIter)(CC_table);
+   while ( (lineCC = VG_(OSetGen_Next)(CC_table)) ) {
+      Bool just_hit_a_new_file = lineCC->loc.file != currFile;
+      Bool just_hit_a_new_fn = just_hit_a_new_file || (lineCC->loc.fn != currFn);
+      
+      if (just_hit_a_new_file) {
+         currFile = lineCC->loc.file;
+         VG_(fprintf)(fp, "fl=%s\n", currFile);
+      }
+      
+      if ( just_hit_a_new_fn) {
+         currFn = lineCC->loc.fn;
+         VG_(fprintf)(fp, "fn=%s\n", currFn);
+      }
+
+      VG_(fprintf)(fp, "%d [0x%x;0x%x] ->", lineCC->loc.line, lineCC->loc.minAddr, lineCC->loc.maxAddr);
+      
+      for (int i=0; i < checkpoint_nb; i++) {
+         if (isSet(&lineCC->phases, i)) {
+            VG_(fprintf)(fp, " %d", i);
+         }
+      }
+
+      VG_(fprintf)(fp, "\n");
+   }
+
+   VG_(fclose(fp));
+}
+
 static void cg_fini(Int exitcode) {
    profiler_close(&memviz_profiler);
+   print_checkpoint_table(&memviz_profiler);
 }
 
 /*--------------------------------------------------------------------*/
@@ -1337,6 +1413,7 @@ static Bool cg_process_cmd_line_option(const HChar* arg)
                               &clo_LL_cache)) {}
 
    else if VG_STR_CLO( arg, "--memviz-out-file", clo_memviz_out_file) {}
+   else if VG_STR_CLO( arg, "--memviz-checkpoint-file", clo_memviz_checkpoint_file) {}
    else
       return False;
 
@@ -1347,7 +1424,10 @@ static void cg_print_usage(void)
 {
    VG_(print_cache_clo_opts)();
    VG_(printf)(
-"    --memviz-out-file=<file>     output file name [memviz.out.%%p]\n"
+"    --memviz-out-file=<file>         output file name [memviz.out.%%p]\n"
+   );
+   VG_(printf)(
+"    --memviz-checkpoint-file=<file>  checkpoint summary file name [memviz.out.%%p]\n"
    );
 }
 

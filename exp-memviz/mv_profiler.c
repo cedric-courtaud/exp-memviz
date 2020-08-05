@@ -29,7 +29,6 @@ void dump_access_buffer(Profiler_t * profiler) {
     }    
 }
 
-
 static void profiler_at_fork(ThreadId tid) {
     Profiler_t * p = the_profiler;
 
@@ -60,6 +59,9 @@ void profiler_init(Profiler_t * profiler, UInt buffer_size, HChar * out_filename
     profiler->current_flags = 0;
     profiler->out_filename = out_filename;
     the_profiler = profiler;
+
+    profiler->checkpoints = VG_(newXA)(VG_(malloc), "Memviz profiler checkpoints xa allocation", VG_(free), sizeof(HChar *));
+    VG_(hintSizeXA)(profiler->checkpoints, 128);
 
     HChar * expanded_out_filename = VG_(expand_file_name)("--memviz-out-file", profiler->out_filename);
     profiler->out_fp = VG_(fopen)(expanded_out_filename, VKI_O_CREAT | VKI_O_WRONLY, VKI_S_IRUSR | VKI_S_IWUSR);
