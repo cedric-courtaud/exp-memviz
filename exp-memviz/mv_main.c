@@ -242,9 +242,9 @@ static LineCC* get_lineCC(Addr origAddr)
    HChar absfile[VG_(strlen)(dir) + 1 + VG_(strlen)(file) + 1];
 
    if (dir[0]) {
-      VG_(sprintf)(absfile, "%s/%s", dir, file);
+      VG_(sprintf)(absfile, "(%s, %s)", dir, file);
    } else {
-      VG_(sprintf)(absfile, "%s", file);
+      VG_(sprintf)(absfile, "(, %s)", file);
    }
 
    loc.file = absfile;
