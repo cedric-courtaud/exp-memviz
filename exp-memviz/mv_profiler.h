@@ -105,7 +105,7 @@ static inline void record_checkpoint(Profiler_t * profiler, const HChar * checkp
     VG_(fprintf)(profiler->out_fp, "C %s %llu\n", checkpoint, profiler->inst_since_last_access);
 }
 
-void profiler_init(Profiler_t * profiler, UInt buffer_size, HChar * out_filename);
+void profiler_init(Profiler_t * profiler, UInt buffer_size, const HChar * out_filename);
 void profiler_close(Profiler_t * profiler);
 
 #endif //__MV_PROFILER_H__

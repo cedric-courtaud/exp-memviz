@@ -50,7 +50,7 @@ static void profiler_at_fork(ThreadId tid) {
     p->buffer_size = 0;
 }
 
-void profiler_init(Profiler_t * profiler, UInt buffer_size, HChar * out_filename) {
+void profiler_init(Profiler_t * profiler, UInt buffer_size, const HChar * out_filename) {
     profiler->buffer_capacity = buffer_size;
     profiler->access_buffer = VG_(malloc)("Memviz profiler buffer allocation", profiler->buffer_capacity * sizeof(*profiler->access_buffer));
     profiler->buffer_size = 0;

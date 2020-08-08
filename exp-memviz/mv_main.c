@@ -79,25 +79,6 @@ static const HChar* clo_memviz_checkpoint_file = "memviz.chekpoint.%p";
 
 static Int min_line_size = 0; /* min of L1 and LL cache line sizes */
 
-/*------------------------------------------------------------*/
-/*--- Types and Data Structures                            ---*/
-/*------------------------------------------------------------*/
-
-typedef
-   struct {
-      ULong a;  /* total # memory accesses of this kind */
-      ULong m1; /* misses in the first level cache */
-      ULong mL; /* misses in the second level cache */
-   }
-   CacheCC;
-
-typedef
-   struct {
-      ULong b;  /* total # branches of this kind */
-      ULong mp; /* number of branches mispredicted */
-   }
-   BranchCC;
-
 //------------------------------------------------------------
 // Profiler
 Profiler_t memviz_profiler;
@@ -121,12 +102,6 @@ CodeLoc;
 typedef struct {
    CodeLoc  loc; /* Source location that these counts pertain to */
    Bitfield phases;
-   CacheCC  Ir;  /* Insn read counts */
-   CacheCC  Dr;  /* Data read counts */
-   CacheCC  Dw;  /* Data write/modify counts */
-   BranchCC Bc;  /* Conditional branch counts */
-   BranchCC Bi;  /* Indirect branch counts */
-   
 } LineCC;
 
 // First compare file, then fn, then line.
@@ -318,94 +293,60 @@ static LineCC* get_lineCC(Addr origAddr)
 static VG_REGPARM(1)
 void log_1IrGen_0D_cache_access(InstrInfo* n)
 {
-   //VG_(printf)("1IrGen_0D :  CCaddr=0x%010lx,  iaddr=0x%010lx,  isize=%lu\n",
    //             n, n->instr_addr, n->instr_len);
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_Gen(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL, &memviz_profiler);
-   n->parent->Ir.a++;
+   cachesim_I1_doref_Gen(n->instr_addr, n->instr_len, &memviz_profiler);
 }
 
 static VG_REGPARM(1)
 void log_1IrNoX_0D_cache_access(InstrInfo* n)
 {
-   //VG_(printf)("1IrNoX_0D :  CCaddr=0x%010lx,  iaddr=0x%010lx,  isize=%lu\n",
-   //             n, n->instr_addr, n->instr_len);
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL, &memviz_profiler);
-   n->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,&memviz_profiler);
 }
 
 static VG_REGPARM(2)
 void log_2IrNoX_0D_cache_access(InstrInfo* n, InstrInfo* n2)
 {
-   //VG_(printf)("2IrNoX_0D : CC1addr=0x%010lx, i1addr=0x%010lx, i1size=%lu\n"
-   //            "            CC2addr=0x%010lx, i2addr=0x%010lx, i2size=%lu\n",
-   //            n,  n->instr_addr,  n->instr_len,
-   //            n2, n2->instr_addr, n2->instr_len);
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL, &memviz_profiler);
-   n->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len, &memviz_profiler);
    
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n2->instr_addr, n2->instr_len,
-			 &n2->parent->Ir.m1, &n2->parent->Ir.mL, &memviz_profiler);
-   n2->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n2->instr_addr, n2->instr_len, &memviz_profiler);
 }
 
 static VG_REGPARM(3)
 void log_3IrNoX_0D_cache_access(InstrInfo* n, InstrInfo* n2, InstrInfo* n3)
 {
-   //VG_(printf)("3IrNoX_0D : CC1addr=0x%010lx, i1addr=0x%010lx, i1size=%lu\n"
-   //            "            CC2addr=0x%010lx, i2addr=0x%010lx, i2size=%lu\n"
-   //            "            CC3addr=0x%010lx, i3addr=0x%010lx, i3size=%lu\n",
-   //            n,  n->instr_addr,  n->instr_len,
-   //            n2, n2->instr_addr, n2->instr_len,
-   //            n3, n3->instr_addr, n3->instr_len);
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
    
-   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL, &memviz_profiler);
-   n->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len, &memviz_profiler);
 
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n2->instr_addr, n2->instr_len,
-			 &n2->parent->Ir.m1, &n2->parent->Ir.mL, &memviz_profiler);
-   n2->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n2->instr_addr, n2->instr_len, &memviz_profiler);
 
 
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n3->instr_addr, n3->instr_len,
-			 &n3->parent->Ir.m1, &n3->parent->Ir.mL, &memviz_profiler);
-   n3->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n3->instr_addr, n3->instr_len, &memviz_profiler);
 }
 
 static VG_REGPARM(3)
 void log_1IrNoX_1Dr_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
 {
-   //VG_(printf)("1IrNoX_1Dr:  CCaddr=0x%010lx,  iaddr=0x%010lx,  isize=%lu\n"
-   //            "                               daddr=0x%010lx,  dsize=%lu\n",
-   //            n, n->instr_addr, n->instr_len, data_addr, data_size);
    
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL, &memviz_profiler);
-   n->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len, &memviz_profiler);
 
    set_current_flags(&memviz_profiler, MV_ACCESS_D_READ);
-   cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dr.m1, &n->parent->Dr.mL, &memviz_profiler);
-   n->parent->Dr.a++;
+   cachesim_D1_doref(data_addr, data_size, &memviz_profiler);
 }
 
 static VG_REGPARM(3)
@@ -416,14 +357,10 @@ void log_1IrNoX_1Dw_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    //            n, n->instr_addr, n->instr_len, data_addr, data_size);
    set_current_instruction_addr(&memviz_profiler, n->instr_addr);
    set_current_flags(&memviz_profiler, MV_ACCESS_I_READ);
-   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL, &memviz_profiler);
-   n->parent->Ir.a++;
+   cachesim_I1_doref_NoX(n->instr_addr, n->instr_len, &memviz_profiler);
 
    set_current_flags(&memviz_profiler, MV_ACCESS_D_WRITE);
-   cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dw.m1, &n->parent->Dw.mL, &memviz_profiler);
-   n->parent->Dw.a++;
+   cachesim_D1_doref(data_addr, data_size, &memviz_profiler);
 }
 
 /* Note that addEvent_D_guarded assumes that log_0Ir_1Dr_cache_access
@@ -435,21 +372,15 @@ void log_0Ir_1Dr_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    //VG_(printf)("0Ir_1Dr:  CCaddr=0x%010lx,  daddr=0x%010lx,  dsize=%lu\n",
    //            n, data_addr, data_size);
    set_current_flags(&memviz_profiler, MV_ACCESS_D_READ);
-   cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dr.m1, &n->parent->Dr.mL, &memviz_profiler);
-   n->parent->Dr.a++;
+   cachesim_D1_doref(data_addr, data_size, &memviz_profiler);
 }
 
 /* See comment on log_0Ir_1Dr_cache_access. */
 static VG_REGPARM(3)
 void log_0Ir_1Dw_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
 {
-   //VG_(printf)("0Ir_1Dw:  CCaddr=0x%010lx,  daddr=0x%010lx,  dsize=%lu\n",
-   //            n, data_addr, data_size);
    set_current_flags(&memviz_profiler, MV_ACCESS_D_WRITE);
-   cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dw.m1, &n->parent->Dw.mL, &memviz_profiler);
-   n->parent->Dw.a++;
+   cachesim_D1_doref(data_addr, data_size, &memviz_profiler);
 }
 
 
@@ -1303,7 +1234,7 @@ static cache_t clo_LL_cache = UNDEFINED_CACHE;
 /*------------------------------------------------------------*/
 
 static void print_checkpoint_table(Profiler_t * profiler) {
-   Int     i;
+   // Int     i;
    VgFile  *fp;
    HChar   *currFile = NULL;
    const HChar *currFn = NULL;
@@ -1355,7 +1286,7 @@ static void print_checkpoint_table(Profiler_t * profiler) {
          VG_(fprintf)(fp, "fn=%s\n", currFn);
       }
 
-      VG_(fprintf)(fp, "%d [0x%x;0x%x] ->", lineCC->loc.line, lineCC->loc.minAddr, lineCC->loc.maxAddr);
+      VG_(fprintf)(fp, "%d [0x%lx;0x%lx] ->", lineCC->loc.line, lineCC->loc.minAddr, lineCC->loc.maxAddr);
       
       for (int i=0; i < checkpoint_nb; i++) {
          if (isSet(&lineCC->phases, i)) {

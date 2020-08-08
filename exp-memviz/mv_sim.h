@@ -178,11 +178,10 @@ static void cachesim_initcaches(cache_t I1c, cache_t D1c, cache_t LLc)
 
 __attribute__((always_inline))
 static __inline__
-void cachesim_I1_doref_Gen(Addr a, UChar size, ULong* m1, ULong *mL, Profiler_t * profiler)
+void cachesim_I1_doref_Gen(Addr a, UChar size, Profiler_t * profiler)
 
 {
    if (cachesim_ref_is_miss(&I1, a, size)) {
-      (*m1)++;
       if (cachesim_ref_is_miss(&LL, a, size)) {
          record_access(profiler, a);
          goto end;
@@ -197,7 +196,7 @@ void cachesim_I1_doref_Gen(Addr a, UChar size, ULong* m1, ULong *mL, Profiler_t 
 // common special case IrNoX
 __attribute__((always_inline))
 static __inline__
-void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL, Profiler_t * profiler)
+void cachesim_I1_doref_NoX(Addr a, UChar size, Profiler_t * profiler)
 
 {
    UWord block  = a >> I1.line_size_bits;
@@ -206,7 +205,6 @@ void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL, Profiler_t 
    // use block as tag
    if (cachesim_setref_is_miss(&I1, I1_set, block)) {
       UInt  LL_set = block & LL.sets_min_1;
-      (*m1)++;
       // can use block as tag as L1I and LL cache line sizes are equal
       if (cachesim_setref_is_miss(&LL, LL_set, block)) {
          record_access(profiler, a);
@@ -221,10 +219,9 @@ void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL, Profiler_t 
 
 __attribute__((always_inline))
 static __inline__
-void cachesim_D1_doref(Addr a, UChar size, ULong* m1, ULong *mL, Profiler_t * profiler)
+void cachesim_D1_doref(Addr a, UChar size, Profiler_t * profiler)
 {
    if (cachesim_ref_is_miss(&D1, a, size)) {
-      (*m1)++;
       if (cachesim_ref_is_miss(&LL, a, size)) {
          record_access(profiler, a);
       }
